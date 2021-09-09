@@ -9,9 +9,28 @@ export default class uploadHanlder {
     this.io = io;
     this.socketId = socketId;
     this.downloadsFolder = downloadsFolder;
+    this.ON_UPLOAD_EVENT = 'file-upload';
   }
 
-  handlerFileBytes() {}
+  handlerFileBytes(fileName) {
+    async function* handleData(source) {
+      let processedAlready = 0;
+
+      for await (const chunk of source) {
+        yield chunk;
+        processedAlready += chunk.length;
+
+        this.io
+          .to(this.socketId)
+          .emit(this.ON_UPLOAD_EVENT, { processedAlready, fileName });
+        logger.info(
+          `File ${fileName} got ${processedAlready} bytes to ${this.socketId}`
+        );
+      }
+    }
+
+    return handleData.bind(this);
+  }
 
   async onFile(fieldName, file, fileName) {
     const saveTo = `${this.downloadsFolder}/${fileName}`;
